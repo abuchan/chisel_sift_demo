@@ -14,7 +14,7 @@ hardware/coregen/coregen.log: hardware/coregen/coregen.cgp hardware/coregen/*.xc
 
 coregen: hardware/coregen/coregen.log
 
-hardware/verilog/xillydemo.bit: netlist coregen cores/*.ngc $(SSE) hardware/verilog/src/*
+hardware/verilog/xillydemo.bit: netlist coregen hardware/cores/*.ngc $(SSE) hardware/verilog/src/*
 	make -C hardware/verilog
 
 bitstream: hardware/verilog/xillydemo.bit

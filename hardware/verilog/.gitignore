@@ -1,1 +1,6 @@
+*
+!src
 src/ScaleSpaceExtrema.v
+!xillydemo.xise
+!xillydemo.cmd_log
+!xillydemo.xst
