@@ -10,4 +10,6 @@ $(CHISEL_SIFT)/verilog/ScaleSpaceExtrema.v:
 	make -C $(CHISEL_SIFT) zedboard
 
 clean:
-	rm -f src/ScaleSpaceExtrema.v
+	rm -f src/ScaleSpaceExtrema.v && \
+  find *.* ! -name 'xillydemo.xise' -a ! -name 'xillydemo.cmd_log' -a ! -name 'xillydemo.xst' -delete && \
+  find ./ -type d ! -name 'src' -a ! -name '.' -exec rm -r {} \;
