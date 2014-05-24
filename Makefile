@@ -14,7 +14,7 @@ hardware/coregen/coregen.log: hardware/coregen/coregen.cgp hardware/coregen/*.xc
 
 coregen: hardware/coregen/coregen.log
 
-hardware/verilog/xillydemo.bit: netlist coregen hardware/cores/*.ngc $(SSE) hardware/verilog/src/*
+hardware/verilog/xillydemo.bit: hardware/coregen/*.ngc hardware/system/implementation/system.ngc hardware/cores/*.ngc $(SSE) hardware/verilog/src/*
 	make -C hardware/verilog
 
 bitstream: hardware/verilog/xillydemo.bit
@@ -27,7 +27,7 @@ bootfile: hardware/boot/boot.bin
 image: image_sdcard.sh xillinux.img
 	./image_sdcard.sh xillinux.img
 
-program: program_sdcard.sh bootfile
+program: program_sdcard.sh hardware/boot/boot.bin
 	./program_sdcard.sh hardware/boot/boot.bin
 
 clean:
