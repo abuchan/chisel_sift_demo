@@ -1,4 +1,4 @@
-read -p "Enter device to image: " sdcard
+read -p "Enter device to image (e.g. /dev/sdb): " sdcard
 
 read -p "WARNING! You are about to image $sdcard. Do you wish to continue (yes/no)?: " yn
 
