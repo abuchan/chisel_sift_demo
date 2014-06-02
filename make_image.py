@@ -18,6 +18,7 @@ def total_size(infos):
   max_part = 0
   for part in infos:
     part_end = part['start'] + part['size']
+    print part_end
     if part_end > max_part:
       max_part = part_end
   # Assuming 512 block size, how constant is this?
@@ -40,8 +41,8 @@ infos = [part_info(p) for p in parts]
 
 print_info(dev, infos)
 
-#n_bytes = total_size(infos)
-n_bytes = 10*4*1024*1024
+n_bytes = total_size(infos)
+#n_bytes = 10*4*1024*1024
 
 total_M = n_bytes/(1024*1024)
 
