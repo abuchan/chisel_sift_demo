@@ -39,8 +39,16 @@ module xillydemo
 
   output smb_sclk,
   inout  smb_sdata,
-  output [1:0] smbus_addr
-
+  output [1:0] smbus_addr,
+  
+  output cam_scl,
+  inout cam_sda,
+  output cam_reset,
+  output cam_xclk,
+  input cam_pclk,
+  input cam_vsync,
+  input cam_hsync,
+  input cam_data[7:0]
   ); 
    // Clock and quiesce
    wire    bus_clk;
@@ -277,9 +285,31 @@ module xillydemo
 			    litearray1[user_addr[6:2]],
 			    litearray0[user_addr[6:2]] };
      end
-   
+  
+  // Camera on PMOD
+  reg [31:0] blink_count;
+  initial blink_count = 32'd0;
+
+  always @(posedge clk_100) begin
+    if(blink_count >= 32'd99_999_999)
+      blink_count <= 32'd0;
+    else
+      blink_count <= blink_count + 32'd1;
+  end
+
+  assign cam_scl = blink_count <= 32'd50_000_000;
+  assign cam_sda = 1'bz;
+
+  assign cam_reset = 1'b1;
+  assign cam_xclk = 1'b0;
+
+  /*input cam_pclk,
+  input cam_vsync,
+  input cam_hsync,
+  input cam_data[7:0];*/
+
    // A simple inferred RAM
-   /* Original Code
+   //Original Code
    always @(posedge bus_clk)
      begin
 	if (user_w_mem_8_wren)
@@ -288,9 +318,8 @@ module xillydemo
 	if (user_r_mem_8_rden)
 	  user_r_mem_8_data <= demoarray[user_mem_8_addr];	  
      end
-  */
 
-parameter RESET_ADDR = 0;
+/*parameter RESET_ADDR = 0;
 parameter SELECT_ADDR = 1;
 parameter COUNT_ADDR = 2;
 
@@ -308,9 +337,9 @@ parameter COUNT_ADDR = 2;
 
    assign  user_r_mem_8_empty = 0;
    assign  user_r_mem_8_eof = 0;
-   assign  user_w_mem_8_full = 0;
+   assign  user_w_mem_8_full = 0;*/
 
-   /* Original code
+   // Original code
    // 32-bit loopback
    fifo_32x512 fifo_32
      (
@@ -323,7 +352,7 @@ parameter COUNT_ADDR = 2;
       .full(user_w_write_32_full),
       .empty(user_r_read_32_empty)
       );
-
+		
    assign  user_r_read_32_eof = 0;
    
    // 8-bit loopback
@@ -340,9 +369,8 @@ parameter COUNT_ADDR = 2;
       );
 
    assign  user_r_read_8_eof = 0;
-   */
 
-  wire sse_reset;
+  /*wire sse_reset;
   wire sse_select_ready, sse_select_valid;
   wire sse_img_in_ready, sse_img_in_valid;
   wire sse_img_out_ready, sse_img_out_valid;
@@ -429,7 +457,8 @@ parameter COUNT_ADDR = 2;
 
   // Image input and output FIFOs
   wire img_fifo_reset;
-  assign img_fifo_reset = /*sse_reset_condition | */(!user_w_write_32_open & !user_r_read_32_open);
+  //assign img_fifo_reset = sse_reset_condition | (!user_w_write_32_open & !user_r_read_32_open);
+  assign img_fifo_reset = (!user_w_write_32_open & !user_r_read_32_open);
   
   fifo_32x512_fwft img_in_fifo(
     .clk(bus_clk),
@@ -461,6 +490,7 @@ parameter COUNT_ADDR = 2;
   );
 
   assign  user_r_read_32_eof = 0;
+  */
 
   /*reg sse_has_been_reset;
   initial sse_has_been_reset = 1'b1;
@@ -479,17 +509,12 @@ parameter COUNT_ADDR = 2;
   assign sse_select_valid = select_fifo_valid & sse_has_been_reset;
   assign select_fifo_ready = sse_select_ready & sse_has_been_reset;*/
 
-  assign sse_reset = (demoarray[RESET_ADDR] == 8'hFF);
+  //assign sse_reset = (demoarray[RESET_ADDR] == 8'hFF);
+  
   //(select_fifo_reset | img_fifo_reset | 
   //  (demoarray[RESET_ADDR] == 8'hFF));
   //  (sse_reset_condition & !sse_has_been_reset));
   
-  // Extra status LEDs
-  //assign PS_GPIO[7] = select_fifo_reset; // LD4
-  //assign PS_GPIO[8] = img_fifo_reset; // LD5
-  //assign PS_GPIO[9] = sse_reset; // LD6
-  //assign PS_GPIO[10] = sse_reset_condition; // LD7
-
    i2s_audio audio
      (
       .bus_clk(bus_clk),
