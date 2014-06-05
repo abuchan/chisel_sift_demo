@@ -41,10 +41,10 @@ module xillydemo
   inout  smb_sdata,
   output [1:0] smbus_addr,
   
-  output cam_scl,
-  inout cam_sda,
   output cam_reset,
   output cam_xclk,
+  inout cam_scl,
+  inout cam_sda,
   input cam_pclk,
   input cam_vsync,
   input cam_hsync,
@@ -286,28 +286,27 @@ module xillydemo
 			    litearray0[user_addr[6:2]] };
      end
   
+  wire user_reset;
+  assign user_reset = demoarray[8'd0] == 8'hFF;
   // Camera on PMOD
-  reg [31:0] blink_count;
-  initial blink_count = 32'd0;
+  camera cam(
+    .clk(clk_100),
+    .reset(user_reset),
 
-  always @(posedge clk_100) begin
-    if(blink_count >= 32'd99_999_999)
-      blink_count <= 32'd0;
-    else
-      blink_count <= blink_count + 32'd1;
-  end
+    .img_ready(),
+    .img_valid(),
+    .img_sync(),
+    .img_data(),
 
-  assign cam_scl = blink_count <= 32'd50_000_000;
-  assign cam_sda = 1'bz;
-
-  assign cam_reset = 1'b1;
-  assign cam_xclk = 1'b0;
-
-  /*input cam_pclk,
-  input cam_vsync,
-  input cam_hsync,
-  input cam_data[7:0];*/
-
+    .cam_reset(cam_reset),
+    .cam_xclk(cam_xclk),
+    .cam_sda(cam_sda),
+    .cam_pclk(cam_pclk),
+    .cam_vsync(cam_vsync),
+    .cam_hsync(cam_hsync),
+    .cam_data(cam_data)
+  );
+  
    // A simple inferred RAM
    //Original Code
    always @(posedge bus_clk)
