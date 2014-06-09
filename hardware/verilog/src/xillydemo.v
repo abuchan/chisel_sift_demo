@@ -364,7 +364,7 @@ parameter COUNT_ADDR = 2;
   // 00000000_RRRRR000_GGGGGG00_BBBBB000
 
   assign img_fifo_data = {
-    8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0]};
+    8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0], 3'd0};
     
   fifo_32x512 img_fifo(
     .clk(bus_clk),
