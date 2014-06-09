@@ -48,7 +48,7 @@ module xillydemo
   input cam_pclk,
   input cam_vsync,
   input cam_hsync,
-  input cam_data[7:0]
+  input [7:0] cam_data
   ); 
    // Clock and quiesce
    wire    bus_clk;
@@ -286,27 +286,6 @@ module xillydemo
 			    litearray0[user_addr[6:2]] };
      end
   
-  wire user_reset;
-  assign user_reset = demoarray[8'd0] == 8'hFF;
-  // Camera on PMOD
-  camera cam(
-    .clk(clk_100),
-    .reset(user_reset),
-
-    .img_ready(),
-    .img_valid(),
-    .img_sync(),
-    .img_data(),
-
-    .cam_reset(cam_reset),
-    .cam_xclk(cam_xclk),
-    .cam_sda(cam_sda),
-    .cam_pclk(cam_pclk),
-    .cam_vsync(cam_vsync),
-    .cam_hsync(cam_hsync),
-    .cam_data(cam_data)
-  );
-  
    // A simple inferred RAM
    //Original Code
    always @(posedge bus_clk)
@@ -340,7 +319,7 @@ parameter COUNT_ADDR = 2;
 
    // Original code
    // 32-bit loopback
-   fifo_32x512 fifo_32
+   /*fifo_32x512 fifo_32
      (
       .clk(bus_clk),
       .srst(!user_w_write_32_open && !user_r_read_32_open),
@@ -352,7 +331,7 @@ parameter COUNT_ADDR = 2;
       .empty(user_r_read_32_empty)
       );
 		
-   assign  user_r_read_32_eof = 0;
+   assign  user_r_read_32_eof = 0;*/
    
    // 8-bit loopback
    fifo_8x2048 fifo_8
@@ -369,6 +348,58 @@ parameter COUNT_ADDR = 2;
 
    assign  user_r_read_8_eof = 0;
 
+  wire user_reset;
+  assign user_reset = demoarray[8'd0] == 8'hFF;
+  
+  wire img_ready, img_valid, img_fifo_full;
+  assign img_ready = !img_fifo_full;
+
+  wire [15:0] img_data;
+  wire [31:0] img_fifo_data;
+
+  // Image Data is:
+  // RRRRRGGG_GGGBBBBB
+  //
+  // Image FIFO Data is:
+  // 00000000_RRRRR000_GGGGGG00_BBBBB000
+
+  assign img_fifo_data = {
+    8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0]};
+    
+  fifo_32x512 img_fifo(
+    .clk(bus_clk),
+    .srst(user_reset),
+
+    .full(img_fifo_full),
+    .wr_en(img_valid),
+    .din(img_fifo_data),
+    
+    .rd_en(user_r_read_32_rden),
+    .empty(user_r_read_32_empty),
+    .dout(user_r_read_32_data)
+  );
+
+  assign  user_r_read_32_eof = 0;
+
+  // Camera on PMOD
+  camera cam(
+    .clk(bus_clk),
+    .reset(user_reset),
+
+    .img_ready(img_ready),
+    .img_valid(img_valid),
+    .img_sync(),
+    .img_data(img_data),
+
+    .cam_reset(cam_reset),
+    .cam_xclk(cam_xclk),
+    .cam_sda(cam_sda),
+    .cam_pclk(cam_pclk),
+    .cam_vsync(cam_vsync),
+    .cam_hsync(cam_hsync),
+    .cam_data(cam_data)
+  );
+  
   /*wire sse_reset;
   wire sse_select_ready, sse_select_valid;
   wire sse_img_in_ready, sse_img_in_valid;

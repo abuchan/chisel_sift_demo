@@ -16,7 +16,7 @@ module camera(
   input cam_pclk,
   input cam_vsync,
   input cam_hsync,
-  input cam_data[7:0]
+  input [7:0] cam_data
 );
 
 camera_control cctrl(

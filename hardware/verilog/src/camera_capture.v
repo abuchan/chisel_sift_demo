@@ -12,16 +12,19 @@ module camera_capture (
   input cam_pclk,
   input cam_vsync,
   input cam_hsync,
-  input cam_data[7:0]
+  input [7:0] cam_data
 );
 
 wire cam_sync_data_valid;
 wire [9:0] cam_sync_data;
 wire cam_ready;
 
+wire cam_pclk_buf;
+BUFR pixel_clock_buf(.I(cam_pclk), .O(cam_pclk_buf));
+
 fifo_pixel_fwft fifo_in(
   .rst(reset),
-  .wr_clk(cam_pclk),
+  .wr_clk(cam_pclk_buf),
   .rd_clk(clk),
   .din({cam_vsync, cam_hsync, cam_data}),
   .wr_en(1'b1),
@@ -37,14 +40,14 @@ initial img_valid = 1'b0;
 reg last_frame_sync;
 initial last_frame_sync = 1'b0;
 
-assign frame_sync = ~last_frame_sync & cam_valid & vsync;
+assign frame_sync = !last_frame_sync & cam_valid & vsync;
 
 wire vsync, hsync;
 wire [7:0] data;
 reg [7:0] last_data;
 
 wire cam_blanking;
-assign cam_blanking = cam_valid & (~vsync | ~hsync);
+assign cam_blanking = cam_valid & (!vsync | !hsync);
 
 assign vsync = cam_sync_data[9];
 assign hsync = cam_sync_data[8];
@@ -54,19 +57,19 @@ reg pixel_count;
 initial pixel_count = 1'b0;
 
 wire next_img_valid;
-assign next_img_valid = cam_valid & (~cam_blanking) & pixel_count;
+assign next_img_valid = cam_valid & (!cam_blanking) & pixel_count;
 
-always @(posedge img_clk) begin
+always @(posedge clk) begin
   if(cam_valid)
     last_frame_sync <= vsync;
 
   if (reset | cam_blanking) begin
     pixel_count <= 1'b0;
   end else if (img_ready & cam_valid) begin
-    pixel_count <= ~pixel_count;
+    pixel_count <= !pixel_count;
   end
 
-  if (reset | (img_ready & ~next_img_valid)) begin
+  if (reset | (img_ready & !next_img_valid)) begin
     img_valid <= 1'b0;
   end else if(img_ready & next_img_valid) begin
     img_valid <= 1'b1;
