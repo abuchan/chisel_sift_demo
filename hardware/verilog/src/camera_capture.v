@@ -40,7 +40,7 @@ initial img_valid = 1'b0;
 reg last_frame_sync;
 initial last_frame_sync = 1'b0;
 
-assign frame_sync = !last_frame_sync & cam_valid & vsync;
+assign img_sync = !last_frame_sync & cam_valid & vsync;
 
 wire vsync, hsync;
 wire [7:0] data;

@@ -356,6 +356,7 @@ parameter COUNT_ADDR = 2;
 
   wire [15:0] img_data;
   wire [31:0] img_fifo_data;
+  wire img_sync, img_fifo_valid;
 
   // Image Data is:
   // RRRRRGGG_GGGBBBBB
@@ -363,15 +364,17 @@ parameter COUNT_ADDR = 2;
   // Image FIFO Data is:
   // 00000000_RRRRR000_GGGGGG00_BBBBB000
 
-  assign img_fifo_data = {
-    8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0], 3'd0};
+  assign img_fifo_data = img_sync ? 32'hFF_00_00_00 :
+  {8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0], 3'd0};
     
+  assign img_fifo_valid = img_sync | img_valid;
+
   fifo_32x512 img_fifo(
     .clk(bus_clk),
     .srst(user_reset),
 
     .full(img_fifo_full),
-    .wr_en(img_valid),
+    .wr_en(img_fifo_valid),
     .din(img_fifo_data),
     
     .rd_en(user_r_read_32_rden),
@@ -388,7 +391,7 @@ parameter COUNT_ADDR = 2;
 
     .img_ready(img_ready),
     .img_valid(img_valid),
-    .img_sync(),
+    .img_sync(img_sync),
     .img_data(img_data),
 
     .cam_reset(cam_reset),
