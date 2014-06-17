@@ -334,7 +334,7 @@ parameter COUNT_ADDR = 2;
    assign  user_r_read_32_eof = 0;*/
    
    // 8-bit loopback
-   fifo_8x2048 fifo_8
+   /*fifo_8x2048 fifo_8
      (
       .clk(bus_clk),
       .srst(!user_w_write_8_open && !user_r_read_8_open),
@@ -346,7 +346,7 @@ parameter COUNT_ADDR = 2;
       .empty(user_r_read_8_empty)
       );
 
-   assign  user_r_read_8_eof = 0;
+   assign  user_r_read_8_eof = 0;*/
 
   wire user_reset;
   assign user_reset = demoarray[8'd0] == 8'hFF;
@@ -383,6 +383,39 @@ parameter COUNT_ADDR = 2;
   );
 
   assign  user_r_read_32_eof = 0;
+  
+  wire host_in_ready, host_in_valid, host_out_full, host_out_valid;
+  wire [7:0] host_in_bits, host_out_bits;
+
+  fifo_8x2048_fwft host_in_fifo(
+    .clk(bus_clk),
+    .srst(!user_w_write_8_open && !user_r_read_8_open),
+
+    .full(user_w_write_8_full),
+    .wr_en(user_w_write_8_wren),
+    .din(user_w_write_8_data),
+    
+    .rd_en(host_in_ready),
+    .valid(host_in_valid),
+    .dout(host_in_bits)
+  );
+ 
+  fifo_8x2048 host_out_fifo (
+    .clk(bus_clk),
+    .srst(!user_w_write_8_open && !user_r_read_8_open),
+
+    .din(host_out_bits),
+    .wr_en(host_out_valid),
+    .full(host_out_full),
+
+    .rd_en(user_r_read_8_rden),
+    .dout(user_r_read_8_data),
+    .empty(user_r_read_8_empty)
+  );
+  
+  assign  user_r_read_8_eof = 0;
+  
+  assign host_out_ready = !host_out_full;
 
   // Camera on PMOD
   camera cam(
@@ -394,9 +427,20 @@ parameter COUNT_ADDR = 2;
     .img_sync(img_sync),
     .img_data(img_data),
 
+    .host_in_ready(host_in_ready),
+    .host_in_valid(host_in_valid),
+    .host_in_bits(host_in_bits),
+	 
+    .host_out_ready(host_out_ready),
+    .host_out_valid(host_out_valid),
+    .host_out_bits(host_out_bits),
+
     .cam_reset(cam_reset),
     .cam_xclk(cam_xclk),
+	 
     .cam_sda(cam_sda),
+	 .cam_scl(cam_scl),
+	 
     .cam_pclk(cam_pclk),
     .cam_vsync(cam_vsync),
     .cam_hsync(cam_hsync),

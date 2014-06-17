@@ -2,6 +2,7 @@
 /*/
 !/src/
 src/ScaleSpaceExtrema.v
+src/I2CStream.v
 !xillydemo.xise
 !xillydemo.cmd_log
 !xillydemo.xst
