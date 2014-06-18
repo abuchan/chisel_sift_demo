@@ -286,67 +286,20 @@ module xillydemo
 			    litearray0[user_addr[6:2]] };
      end
   
-   // A simple inferred RAM
-   //Original Code
-   /*always @(posedge bus_clk)
-     begin
-	if (user_w_mem_8_wren)
-	  demoarray[user_mem_8_addr] <= user_w_mem_8_data;
-	
-	if (user_r_mem_8_rden)
-	  user_r_mem_8_data <= demoarray[user_mem_8_addr];	  
-     end*/
-
   parameter RESET_ADDR = 0;
   parameter SELECT_ADDR = 1;
-  //parameter COUNT_ADDR = 2;
 
   always @(posedge bus_clk) begin
     if(user_w_mem_8_wren)
       demoarray[user_mem_8_addr] <= user_w_mem_8_data;
 
     if(user_r_mem_8_rden) begin
-    //  if (user_mem_8_addr == COUNT_ADDR)
-    //    user_r_mem_8_data <= ack_count;
-    //  else
-        user_r_mem_8_data <= demoarray[user_mem_8_addr];
-    end
+      user_r_mem_8_data <= demoarray[user_mem_8_addr];
   end
 
   assign  user_r_mem_8_empty = 0;
   assign  user_r_mem_8_eof = 0;
   assign  user_w_mem_8_full = 0;
-
-   // Original code
-   // 32-bit loopback
-   /*fifo_32x512 fifo_32
-     (
-      .clk(bus_clk),
-      .srst(!user_w_write_32_open && !user_r_read_32_open),
-      .din(user_w_write_32_data),
-      .wr_en(user_w_write_32_wren),
-      .rd_en(user_r_read_32_rden),
-      .dout(user_r_read_32_data),
-      .full(user_w_write_32_full),
-      .empty(user_r_read_32_empty)
-      );
-		
-   assign  user_r_read_32_eof = 0;*/
-   
-   // 8-bit loopback
-   /*fifo_8x2048 fifo_8
-     (
-      .clk(bus_clk),
-      .srst(!user_w_write_8_open && !user_r_read_8_open),
-      .din(user_w_write_8_data),
-      .wr_en(user_w_write_8_wren),
-      .rd_en(user_r_read_8_rden),
-      .dout(user_r_read_8_data),
-      .full(user_w_write_8_full),
-      .empty(user_r_read_8_empty)
-      );
-
-   assign  user_r_read_8_eof = 0;*/
 
   wire user_reset;
   assign user_reset = demoarray[8'd0] == 8'hFF;
@@ -364,12 +317,12 @@ module xillydemo
   // Image FIFO Data is (quad img data):
   // 00000000_RRRRR000_GGGGGG00_BBBBB000
   
-  wire [31:0] quad_img_data;
+  /*wire [31:0] quad_img_data;
   assign quad_img_data = {8'd0, img_data[15:11], 3'd0,
     img_data[10:5], 2'd0, img_data[4:0], 3'd0};
 
-  //assign img_fifo_data = img_sync ? 32'hFF_00_00_00 : quad_img_data;
-  //assign img_fifo_valid = img_sync | img_valid;
+  assign img_fifo_data = img_sync ? 32'hFF_00_00_00 : quad_img_data;
+  assign img_fifo_valid = img_sync | img_valid;
   
   assign img_fifo_data = quad_img_data;
   assign img_fifo_valid = img_valid;
@@ -405,7 +358,7 @@ module xillydemo
   end
 
   //assign  user_r_read_32_eof = 0;
-  assign  user_r_read_32_eof = img_eof;
+  assign  user_r_read_32_eof = img_eof;*/
   
   wire host_in_ready, host_in_valid, host_out_full, host_out_valid;
   wire [7:0] host_in_bits, host_out_bits;
@@ -470,7 +423,6 @@ module xillydemo
     .cam_data(cam_data)
   );
   
-  /*wire sse_reset;
   wire sse_select_ready, sse_select_valid;
   wire sse_img_in_ready, sse_img_in_valid;
   wire sse_img_out_ready, sse_img_out_valid;
@@ -479,13 +431,11 @@ module xillydemo
 
   ScaleSpaceExtrema sse(
     .clk(bus_clk), 
-    .reset(sse_reset),
+    .reset(user_reset),
     
     .io_select_ready(sse_select_ready),
     .io_select_valid(sse_select_valid),
     .io_select_bits(sse_select_bits), // 8 bits
-    //.io_select_valid(1'b1),
-    //.io_select_bits(8'd8), // This static assignment worked to just get a diff out
 
     .io_img_in_ready(sse_img_in_ready),
     .io_img_in_valid(sse_img_in_valid),
@@ -496,68 +446,8 @@ module xillydemo
     .io_img_out_bits(sse_img_out_bits[23:0]) // 24 bits
   );
 
-  // Select FIFO tied to user 8 write port
-  wire select_fifo_reset;
-  assign select_fifo_reset = !user_w_write_8_open & !user_r_read_8_open;
-  wire select_fifo_valid, select_fifo_ready;
-  wire [7:0] select_fifo_bits;
-
-  fifo_8x2048_fwft select_fifo(
-    .clk(bus_clk),
-    .srst(select_fifo_reset),
-
-    .full(user_w_write_8_full),
-    .wr_en(user_w_write_8_wren),
-    .din(user_w_write_8_data),
-    
-    //.rd_en(select_fifo_ready),
-    .rd_en(1'b1),
-    .valid(select_fifo_valid),
-    //.dout(sse_select_bits)
-    .dout(select_fifo_bits)
-  );
-
-  wire ack_fifo_valid;
-  assign sse_select_valid = 1'b1;
-  assign sse_select_bits = demoarray[SELECT_ADDR];
-  assign sse_img_out_bits[31:24] = sse_select_bits;
-
-  //assign ack_fifo_valid = select_fifo_valid & select_fifo_ready;
-  assign ack_fifo_valid = sse_select_ready & sse_select_valid;
-
-  reg [7:0] ack_count;
-
-  initial ack_count = 8'd0;
-
-  always @(posedge bus_clk) begin
-    if (select_fifo_reset) begin
-      ack_count <= 8'd0;
-    end
-    else if (ack_fifo_valid) begin
-      ack_count <= ack_count + 8'd1;
-    end
-  end
-
-  // Acknowledge when selected stream has been changed
-  fifo_8x2048 ack_fifo(
-    .clk(bus_clk),
-    .srst(select_fifo_reset),
-
-    .full(),
-    .wr_en(select_fifo_valid),
-    //.din(ack_count),
-    .din(select_fifo_bits),
-    
-    .rd_en(user_r_read_8_rden),
-    .empty(user_r_read_8_empty),
-    .dout(user_r_read_8_data)
-  );
-
-  assign  user_r_read_8_eof = 0;
-
   // Image input and output FIFOs
   wire img_fifo_reset;
-  //assign img_fifo_reset = sse_reset_condition | (!user_w_write_32_open & !user_r_read_32_open);
   assign img_fifo_reset = (!user_w_write_32_open & !user_r_read_32_open);
   
   fifo_32x512_fwft img_in_fifo(
@@ -568,9 +458,10 @@ module xillydemo
     .wr_en(user_w_write_32_wren),
     .din(user_w_write_32_data),
     
-    .rd_en(sse_img_in_ready),
-    .valid(sse_img_in_valid),
-    .dout(sse_img_in_bits)
+    //.rd_en(sse_img_in_ready),
+    .rd_en(1'b1);
+    //.valid(sse_img_in_valid),
+    //.dout(sse_img_in_bits)
   );
 
   wire img_out_fifo_full;
@@ -590,31 +481,7 @@ module xillydemo
   );
 
   assign  user_r_read_32_eof = 0;
-  */
 
-  /*reg sse_has_been_reset;
-  initial sse_has_been_reset = 1'b1;
-
-  always @(posedge bus_clk) begin
-    if(sse_reset)
-      sse_has_been_reset <= 1'b1;
-    else if(sse_img_in_valid)
-      sse_has_been_reset <= 1'b0;
-  end
-
-  wire sse_reset_condition;
-  assign sse_reset_condition = (sse_select_ready & select_fifo_valid &
-    (select_fifo_bits == 8'hFF));
-
-  assign sse_select_valid = select_fifo_valid & sse_has_been_reset;
-  assign select_fifo_ready = sse_select_ready & sse_has_been_reset;*/
-
-  //assign sse_reset = (demoarray[RESET_ADDR] == 8'hFF);
-  
-  //(select_fifo_reset | img_fifo_reset | 
-  //  (demoarray[RESET_ADDR] == 8'hFF));
-  //  (sse_reset_condition & !sse_has_been_reset));
-  
    i2s_audio audio
      (
       .bus_clk(bus_clk),
