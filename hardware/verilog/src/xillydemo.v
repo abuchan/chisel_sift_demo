@@ -293,7 +293,7 @@ module xillydemo
     if(user_w_mem_8_wren)
       demoarray[user_mem_8_addr] <= user_w_mem_8_data;
 
-    if(user_r_mem_8_rden) begin
+    if(user_r_mem_8_rden)
       user_r_mem_8_data <= demoarray[user_mem_8_addr];
   end
 
@@ -304,12 +304,12 @@ module xillydemo
   wire user_reset;
   assign user_reset = demoarray[8'd0] == 8'hFF;
   
-  wire img_ready, img_valid, img_fifo_full;
-  assign img_ready = !img_fifo_full;
-
+  wire img_ready, img_valid, img_sync;
   wire [15:0] img_data;
-  wire [31:0] img_fifo_data;
-  wire img_sync, img_fifo_valid;
+  
+  //wire [31:0] img_fifo_data;
+  //wire img_fifo_full, img_fifo_valid;
+  //assign img_ready = !img_fifo_full;
 
   // Image Data is:
   // RRRRRGGG_GGGBBBBB
@@ -317,11 +317,11 @@ module xillydemo
   // Image FIFO Data is (quad img data):
   // 00000000_RRRRR000_GGGGGG00_BBBBB000
   
-  /*wire [31:0] quad_img_data;
+  wire [31:0] quad_img_data;
   assign quad_img_data = {8'd0, img_data[15:11], 3'd0,
     img_data[10:5], 2'd0, img_data[4:0], 3'd0};
 
-  assign img_fifo_data = img_sync ? 32'hFF_00_00_00 : quad_img_data;
+  /*assign img_fifo_data = img_sync ? 32'hFF_00_00_00 : quad_img_data;
   assign img_fifo_valid = img_sync | img_valid;
   
   assign img_fifo_data = quad_img_data;
@@ -423,11 +423,19 @@ module xillydemo
     .cam_data(cam_data)
   );
   
-  wire sse_select_ready, sse_select_valid;
   wire sse_img_in_ready, sse_img_in_valid;
   wire sse_img_out_ready, sse_img_out_valid;
   wire [31:0] sse_img_in_bits, sse_img_out_bits;
+
+  assign sse_img_in_valid = img_valid;
+  assign img_ready = sse_img_in_ready;
+  assign sse_img_in_bits = quad_img_data;
+  
+  wire sse_select_valid, sse_select_ready;
   wire [7:0] sse_select_bits;
+  
+  assign sse_select_valid = 1'b1;
+  assign sse_select_bits = demoarray[SELECT_ADDR];
 
   ScaleSpaceExtrema sse(
     .clk(bus_clk), 
@@ -459,7 +467,7 @@ module xillydemo
     .din(user_w_write_32_data),
     
     //.rd_en(sse_img_in_ready),
-    .rd_en(1'b1);
+    .rd_en(1'b1)
     //.valid(sse_img_in_valid),
     //.dout(sse_img_in_bits)
   );
