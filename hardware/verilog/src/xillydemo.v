@@ -288,34 +288,34 @@ module xillydemo
   
    // A simple inferred RAM
    //Original Code
-   always @(posedge bus_clk)
+   /*always @(posedge bus_clk)
      begin
 	if (user_w_mem_8_wren)
 	  demoarray[user_mem_8_addr] <= user_w_mem_8_data;
 	
 	if (user_r_mem_8_rden)
 	  user_r_mem_8_data <= demoarray[user_mem_8_addr];	  
-     end
+     end*/
 
-/*parameter RESET_ADDR = 0;
-parameter SELECT_ADDR = 1;
-parameter COUNT_ADDR = 2;
+  parameter RESET_ADDR = 0;
+  parameter SELECT_ADDR = 1;
+  //parameter COUNT_ADDR = 2;
 
   always @(posedge bus_clk) begin
     if(user_w_mem_8_wren)
       demoarray[user_mem_8_addr] <= user_w_mem_8_data;
 
     if(user_r_mem_8_rden) begin
-      if (user_mem_8_addr == COUNT_ADDR)
-        user_r_mem_8_data <= ack_count;
-      else
+    //  if (user_mem_8_addr == COUNT_ADDR)
+    //    user_r_mem_8_data <= ack_count;
+    //  else
         user_r_mem_8_data <= demoarray[user_mem_8_addr];
     end
   end
 
-   assign  user_r_mem_8_empty = 0;
-   assign  user_r_mem_8_eof = 0;
-   assign  user_w_mem_8_full = 0;*/
+  assign  user_r_mem_8_empty = 0;
+  assign  user_r_mem_8_eof = 0;
+  assign  user_w_mem_8_full = 0;
 
    // Original code
    // 32-bit loopback
@@ -361,13 +361,18 @@ parameter COUNT_ADDR = 2;
   // Image Data is:
   // RRRRRGGG_GGGBBBBB
   //
-  // Image FIFO Data is:
+  // Image FIFO Data is (quad img data):
   // 00000000_RRRRR000_GGGGGG00_BBBBB000
+  
+  wire [31:0] quad_img_data;
+  assign quad_img_data = {8'd0, img_data[15:11], 3'd0,
+    img_data[10:5], 2'd0, img_data[4:0], 3'd0};
 
-  assign img_fifo_data = img_sync ? 32'hFF_00_00_00 :
-  {8'd0, img_data[15:11], 3'd0, img_data[10:5], 2'd0, img_data[4:0], 3'd0};
-    
-  assign img_fifo_valid = img_sync | img_valid;
+  //assign img_fifo_data = img_sync ? 32'hFF_00_00_00 : quad_img_data;
+  //assign img_fifo_valid = img_sync | img_valid;
+  
+  assign img_fifo_data = quad_img_data;
+  assign img_fifo_valid = img_valid;
 
   fifo_32x512 img_fifo(
     .clk(bus_clk),
@@ -381,8 +386,26 @@ parameter COUNT_ADDR = 2;
     .empty(user_r_read_32_empty),
     .dout(user_r_read_32_data)
   );
+  
+  wire img_top;
+  reg img_eof;
 
-  assign  user_r_read_32_eof = 0;
+  ImageCounter eof_count(
+    .clk(bus_clk),
+    .reset(user_reset),
+    .io_en(user_r_read_32_rden & !user_r_read_32_empty),
+    .io_top(img_top)
+  );
+
+  always @(posedge bus_clk) begin
+    if (user_reset | user_r_read_32_empty)
+      img_eof <= 1'b0;
+    else if (img_top & user_r_read_32_rden)
+      img_eof <= 1'b1;
+  end
+
+  //assign  user_r_read_32_eof = 0;
+  assign  user_r_read_32_eof = img_eof;
   
   wire host_in_ready, host_in_valid, host_out_full, host_out_valid;
   wire [7:0] host_in_bits, host_out_bits;
@@ -439,7 +462,7 @@ parameter COUNT_ADDR = 2;
     .cam_xclk(cam_xclk),
 	 
     .cam_sda(cam_sda),
-	 .cam_scl(cam_scl),
+	  .cam_scl(cam_scl),
 	 
     .cam_pclk(cam_pclk),
     .cam_vsync(cam_vsync),
